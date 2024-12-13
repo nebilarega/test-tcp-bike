@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>Mobile QR Code Scanner</title>
+    <style>
+      /* General Reset */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        background-color: #f0f0f0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        padding: 10px;
+      }
+
+      .container {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100%;
+      }
+
+      h1 {
+        font-size: 1.5em;
+        color: #333;
+        margin-bottom: 20px;
+      }
+
+      #reader {
+        width: 100%;
+        height: 300px;
+        margin-bottom: 20px;
+        border: 2px dashed #007bff;
+        border-radius: 12px;
+        background-color: #f9f9f9;
+        position: relative;
+        display: none;
+      }
+
+      .result {
+        background-color: #e6ffed;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 1.2em;
+        color: #28a745;
+        margin-top: 10px;
+        display: none;
+      }
+
+      .error {
+        color: #d9534f;
+        font-size: 1em;
+        font-weight: bold;
+        margin-top: 10px;
+        display: none;
+      }
+
+      button {
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        padding: 12px 20px;
+        font-size: 1em;
+        border-radius: 8px;
+        cursor: pointer;
+        width: 100%;
+        margin-top: 10px;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      #stopScanBtn {
+        background-color: #d9534f;
+        display: none;
+      }
+
+      #stopScanBtn:hover {
+        background-color: #c9302c;
+      }
+
+      #permissionBtn {
+        display: none;
+        background-color: #ffc107;
+        color: #212529;
+      }
+
+      #permissionBtn:hover {
+        background-color: #e0a800;
+      }
+    </style>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"
+      integrity="sha512-r6rDA7W6ZeQhvl8S7yRVQUKVHdexq+GAlNkNNqVC7YyIV+NwqCTJe2hDWCiffTyRNOeGEzRRJ9ifvRm/HCzGYg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>QR Code Scanner</h1>
+      <button id="startScanBtn">Start Scan</button>
+      <div id="reader"></div>
+      <div id="result" class="result"></div>
+      <div id="error" class="error"></div>
+      <button id="restartBtn" style="display: none">Restart Scanner</button>
+      <button id="permissionBtn">Request Camera Access</button>
+      <button id="stopScanBtn">Stop Scan</button>
+    </div>
+
+    <script>
+      const qrCodeReader = new Html5Qrcode("reader");
+      const resultDiv = document.getElementById("result");
+      const errorDiv = document.getElementById("error");
+      const restartBtn = document.getElementById("restartBtn");
+      const permissionBtn = document.getElementById("permissionBtn");
+      const startScanBtn = document.getElementById("startScanBtn");
+      const stopScanBtn = document.getElementById("stopScanBtn");
+      const readerDiv = document.getElementById("reader");
+
+      function onScanSuccess(decodedText) {
+        if (/^\d{12}$/.test(decodedText)) {
+          resultDiv.textContent = "Scanned Number: " + decodedText;
+          resultDiv.style.display = "block";
+          errorDiv.style.display = "none";
+          stopScanner();
+          restartBtn.style.display = "block";
+          startScanBtn.style.display = "block";
+        } else {
+          errorDiv.textContent =
+            "Invalid QR code. Only 12-digit numbers are allowed.";
+          errorDiv.style.display = "block";
+        }
+      }
+
+      function onScanFailure(error) {
+        console.warn(`QR scan error: ${error}`);
+      }
+
+      function startScanner() {
+        readerDiv.style.display = "block";
+        startScanBtn.style.display = "none";
+        stopScanBtn.style.display = "block";
+        qrCodeReader
+          .start(
+            { facingMode: "environment" }, // Prefer back camera on mobile
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            onScanSuccess,
+            onScanFailure
+          )
+          .catch((err) => {
+            errorDiv.textContent = "Camera access denied or unavailable.";
+            errorDiv.style.display = "block";
+            permissionBtn.style.display = "block";
+            startScanBtn.style.display = "block";
+            stopScanBtn.style.display = "none";
+          });
+      }
+
+      function stopScanner() {
+        qrCodeReader
+          .stop()
+          .then(() => {
+            readerDiv.style.display = "none";
+            stopScanBtn.style.display = "none";
+            startScanBtn.style.display = "block";
+          })
+          .catch((err) => {
+            console.error(`Stop error: ${err}`);
+          });
+      }
+
+      function requestCameraAccess() {
+        navigator.mediaDevices
+          .getUserMedia({ video: true })
+          .then(() => {
+            errorDiv.style.display = "none";
+            permissionBtn.style.display = "none";
+            startScanner();
+          })
+          .catch(() => {
+            errorDiv.textContent = "Camera permission is still denied.";
+            errorDiv.style.display = "block";
+          });
+      }
+
+      restartBtn.addEventListener("click", () => {
+        resultDiv.style.display = "none";
+        restartBtn.style.display = "none";
+        errorDiv.style.display = "none";
+        startScanner();
+      });
+
+      permissionBtn.addEventListener("click", requestCameraAccess);
+      startScanBtn.addEventListener("click", startScanner);
+      stopScanBtn.addEventListener("click", stopScanner);
+    </script>
+  </body>
+</html>
