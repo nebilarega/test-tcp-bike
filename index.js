@@ -8,7 +8,10 @@ const HTTP_PORT = 3000;
 const userId = "1234";
 const devices = new Map(); // Store IMEI -> socket mapping
 const devicesInfromation = new Map(); // Store IMEI -> device information mapping
-const bikes = [{ bikeId: "1689327020", model: "Electric Bike 1" }];
+const bikes = [
+  { bikeId: "1689327020", model: "Electric Bike 1", imei: "867255075759094" },
+  { bikeId: "1689327019", model: "Electric Bike 2", imei: "867255075759084" },
+];
 
 let bikeStatus = "locked";
 
@@ -229,6 +232,7 @@ app.post("/checkBikeId", (req, res) => {
     if (devices.size > 0) {
       return res.status(200).json({
         message: "Bike found",
+        imei: bike.imei,
       });
     } else {
       return res.status(405).json({
